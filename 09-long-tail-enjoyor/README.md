@@ -4,3 +4,6 @@ You’re an active member of the Synthetix community and noticed that the implem
 
 - a) How, in theory, can you make money based on the SIP specification?
 - b) Provide the simulation data when you execute the opportunity using the full maxETH amount.
+
+a) Based on prices from coingecko, sETH once reached 1.04 ETH on May 13, 2021. If the mintFeeRate is lower than the price difference between sETH and ETH, profits can be made.
+b) There is actual data on EtherScan and I will use 0x2393c368C70B42f055a4932a3fbeC2AC9C548011 as an example. At about 19:00 GMT on that day, the user minted 4867 sETH and swapped for 4978 ETH, making a profit of 111 ETH. Deducting 0.1% of mintFeeRate and burnFeeRate, as well as 4*0.14 ETH transaction fee, they still made a profit of 106 ETH, which was 382k dollars at that time.

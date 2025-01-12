@@ -5,3 +5,98 @@ Here is a useful thread for extra context, also you can view the announcement on
 a) You are aware of Jito's modified Solana client to improve the efficiency of MEV extraction. Describe how unaligned validators can run their own private mempool to facilitate sandwich attacks.
 b) Identify the validators that had their stake removed, and determine the total amount removed.
 c) Write code that, given a Solana block, outputs whether a sandwich attack was included.
+
+a)
+In a private mempool, a validator is able to scan through pending transactions and identify MEVs. They can place front and back run orders around large transactions and propose them in blocks.
+
+b)
+The Solana foundation did not release an official list of validators removed. However, after some digging on their discord, I found https://stakeview.app/stakes where stake changes of validators can be viewed and analyzed. In Epoch 627, the one corresponding to the time of = Solana's announcement of removal of stakes from certain validators, it can be seen that around 20 validators had more than 97% of their stakes removed. It can be further verified by copying their addresses into the official Solana validator's program and check if their validator status is rejected. A rough estimate of 620k SOL worth of stakes was removed.
+
+c)
+import { Connection, PublicKey } from '@solana/web3.js';
+import { Market } from '@project-serum/serum';
+
+interface Transaction {
+  signature: string;
+  tokenSwaps: TokenSwap[];
+  timestamp: number;
+}
+
+interface TokenSwap {
+  tokenIn: PublicKey;
+  tokenOut: PublicKey;
+  amountIn: number;
+  amountOut: number;
+}
+
+async function detectSandwichAttacks(
+  block: Transaction[],
+  slippageTolerance: number = 0.02, // 2% price impact threshold
+  timeWindow: number = 2, // 2 second window
+): Promise<SandwichAttack[]> {
+  const attacks: SandwichAttack[] = [];
+  
+  // Sort transactions by timestamp
+  const sortedTxs = [...block].sort((a, b) => a.timestamp - b.timestamp);
+  
+  for (let i = 1; i < sortedTxs.length - 1; i++) {
+    const frontTx = sortedTxs[i - 1];
+    const victimTx = sortedTxs[i];
+    const backTx = sortedTxs[i + 1];
+    
+    // Check time proximity
+    if (backTx.timestamp - frontTx.timestamp > timeWindow * 1000) {
+      continue;
+    }
+    
+    // Look for matching token pairs in reverse
+    for (const victimSwap of victimTx.tokenSwaps) {
+      const frontMatchingSwap = frontTx.tokenSwaps.find(
+        swap => swap.tokenIn.equals(victimSwap.tokenOut) && 
+               swap.tokenOut.equals(victimSwap.tokenIn)
+      );
+      
+      const backMatchingSwap = backTx.tokenSwaps.find(
+        swap => swap.tokenIn.equals(victimSwap.tokenOut) &&
+               swap.tokenOut.equals(victimSwap.tokenIn)
+      );
+      
+      if (!frontMatchingSwap || !backMatchingSwap) {
+        continue;
+      }
+      
+      // Calculate price impacts
+      const frontPrice = frontMatchingSwap.amountOut / frontMatchingSwap.amountIn;
+      const victimPrice = victimSwap.amountOut / victimSwap.amountIn;
+      const backPrice = backMatchingSwap.amountOut / backMatchingSwap.amountIn;
+      
+      const priceImpact = Math.abs((victimPrice - frontPrice) / frontPrice);
+      
+      if (priceImpact > slippageTolerance) {
+        attacks.push({
+          frontRunTx: frontTx.signature,
+          victimTx: victimTx.signature,
+          backRunTx: backTx.signature,
+          priceImpact,
+          tokenPair: {
+            token0: victimSwap.tokenIn,
+            token1: victimSwap.tokenOut
+          }
+        });
+      }
+    }
+  }
+  
+  return attacks;
+}
+
+interface SandwichAttack {
+  frontRunTx: string;
+  victimTx: string;
+  backRunTx: string;
+  priceImpact: number;
+  tokenPair: {
+    token0: PublicKey;
+    token1: PublicKey;
+  };
+}

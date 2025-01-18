@@ -7,3 +7,83 @@ Identify the opportunity that yielded the highest single profit.
 c) How can you avoid being sandwiched in the future? Provide some reasons that might explain why Jared is out-competing other sandwich enjoyers.
 
 a)
+Jared has hundredss of thousands of transactions every month. Since etherscan API only calls a maximum of 10000 transactions, I will just write the code here but not run it on the real data.
+
+from datetime import datetime
+
+def label_transactions(transactions):
+    """
+    Labels frontrun and backrun transactions.
+    :param transactions: List of transaction dictionaries from Etherscan API.
+    :return: List of dictionaries with identified sandwich attacks.
+    """
+    transactions.sort(key=lambda x: int(x['timeStamp']))  # Sort transactions by time
+
+    sandwich_attacks = []  # List to hold identified sandwich attack pairs
+
+    # Iterate through transactions to find frontrun and backrun pairs
+    for i, tx in enumerate(transactions):
+        if tx['to'] and tx['to'].startswith("0xa247609135619086A91Fe0e3F6E5E60DE64Ac06b"):  # Example DEX contract
+            windowLength = 100 # Look for 100 transactions ahead. Larger window gives more accurate results
+                               # but is more computationally heavy
+            for j in range(i + 1, i+windowLength):
+                next_tx = transactions[j]
+                if tx['from'] == next_tx['from'] and int(next_tx['timeStamp']) > int(tx['timeStamp']):
+                    sandwich_attacks.append({
+                        'front_run': tx,
+                        'back_run': next_tx
+                    })
+                    break  # Stop after finding the backrun for this frontrun
+
+    return sandwich_attacks
+
+
+def calculate_revenue_and_profit(sandwich_attacks):
+    """
+    Calculates revenue and profit for identified sandwich attacks.
+    :param sandwich_attacks: List of identified sandwich attack pairs.
+    :return: Total revenue and profit.
+    """
+    total_revenue = 0
+    total_profit = 0
+
+    for attack in sandwich_attacks:
+        front_run = attack['front_run']
+        back_run = attack['back_run']
+
+        # Gas fees for frontrun and backrun
+        front_run_gas = int(front_run['gasUsed']) * int(front_run['gasPrice'])
+        back_run_gas = int(back_run['gasUsed']) * int(back_run['gasPrice'])
+        total_gas_fees = front_run_gas + back_run_gas
+
+        # Example: Calculate cost and proceeds (assume these are recorded as `value`)
+        # Convert Wei to ETH by dividing by 10^18
+        front_run_cost = int(front_run['value']) / 1e18
+        back_run_proceeds = int(back_run['value']) / 1e18
+
+        # Revenue and profit calculation
+        revenue = back_run_proceeds - front_run_cost
+        profit = revenue - (total_gas_fees / 1e18)
+
+        total_revenue += revenue
+        total_profit += profit
+
+        # Log the details
+        print(f"Front-run TX: {front_run['hash']}, Back-run TX: {back_run['hash']}")
+        print(f"Revenue: {revenue:.6f} ETH, Profit: {profit:.6f} ETH")
+
+    return total_revenue, total_profit
+
+b)
+Again, I don't have the complete data. But according to an article on Eigenphi, Jared was launched in Feb 2023 and generated significant profit in April due to the meme coin surge. It netted 6.3 million of profit within about 3 weeks.
+
+c)
+Sandwich often takes place in DEX on transactions of more illiquid tokens like meme coins, where one trade has significant impact on the AMM pricing. There are several ways to protect oneself from such attacks:
+
+  1) Trade more liquid tokens to avoid high slippage.
+  2) Set lower slippage tolerance when trading.
+  3) Break up larger trades to be less noticeable.
+
+There are also projects that aim to avoid sandwich attacks. One example is Plasma by Ellipsis with an anti-sandwich AMM mechanism.
+
+Jared held large amounts of a variety of tokens and was able to execute trades in time. It also outcompeted other bots by including higher gas fee rewards for block builders.

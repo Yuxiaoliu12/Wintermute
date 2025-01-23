@@ -5,3 +5,18 @@ b) Provide all necessary simulation data to arbitrage the pool on January 23, 20
 c) Could you execute the arbitrage on March 14, 2022? If not, explain why.
 
 a)
+Uniswap V2 was launched in 2020. Since then most liquidity providers switched to V2 and very little trading took place in V1.
+
+b)
+I had trouble accessing V1 pool data from Dune, Alchemy, etc. In the end, I had to reverse engineer the pool's reserve by tracking historical transactions in the pool on EtherScan.
+In fact, there was no activity in the pool since 2021/12/05, so the state of the pool on January 23, 2022 would be the same as now. There are 0.67157 ETH and 2400 TUSD in the pool.
+The constant k from 0.67157x2400 is 1611.
+
+The price of ETH on January 23, 2022 is 2407 USD, lower than 2400/0.67157=3573. With k=1611, if we sell y TUSD to the pool, we get 0.67157-1611/(2400+y) ETH.
+Our profit would then be 2407(0.67157-1611/(2400+y))-y. However, since the pool is so small, this function is only positive from 0 to 2.35.
+
+Let's examine the other direction. If we sell x ETH to the pool, we get 2400-1611/(0.6715786+x) TUSD.
+Our profit would then be 2400-1611/(0.6715786+x)-2407x. The maximum takes place at x=0.14653 and attains 78. 
+
+c)
+The price of ETH on Mar 14, 2022 is 2518 USD. Plugging in 2518 for 2407, we get a maximum of 62.8 at x=0.12829.

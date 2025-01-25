@@ -1,1 +1,9 @@
+While digging around, you learn about the manual process involved in updating oracle prices for Compound v1. According to the official blog post, the protocol was deprecated on June 3, 2019. However, according to the contract, it was never paused, and there are no functions for freezing markets. Given this, perhaps it’s possible to use stale prices and borrow all assets cheaply?
 
+a) Are the prices stale according to the view of Compound v1?
+b) Were markets paused in some way? Provide all necessary data to simulate the borrowing of any asset on June 5, 2019 to prove your point.
+
+
+According to the deprecation blogpost, borrowing was disallowed since June 3, 2019. Yes the price oracle contract was never paused, but any borrowing was impossible. It is also evident from etherscan, that after Jun 4, 2019, no borrowing activity took place at the Compound V1 contract address. All transactions were withdraw, repay, or liquidation. Thus, even if prices were stale, there was no arbitrage opportunity.
+
+I took a look at Compound's github repos. The price oracle involving manual process was in a separate repo, and that effectively means it's useless now. All financial activities are in the main repo now.
